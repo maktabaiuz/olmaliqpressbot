@@ -16,7 +16,15 @@ import config
 import storage
 import processor
 import poster
-from telegram_reader import get_telegram_client, fetch_channel_posts, download_post_media
+
+# Optional: Telegram reader (only if API credentials configured)
+telegram_reader_available = False
+try:
+    if config.TELEGRAM_API_ID and config.TELEGRAM_API_HASH:
+        from telegram_reader import get_telegram_client, fetch_channel_posts, download_post_media
+        telegram_reader_available = True
+except Exception as e:
+    print(f"⚠️ Telegram Reader not available: {e}")
 
 def log(msg: str):
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -58,6 +66,31 @@ def post_to_both_channels(media_items: list, uz_result: dict) -> bool:
         log(f"[RU Error] ❌ {config.TARGET_CHANNEL_RU} kanaliga yuborishda xatolik yuz berdi.")
 
     return True
+
+def run_demo_test_mode():
+    """Test mode without Telegram API - process sample text"""
+    log("=== DEMO TEST REJIMI (Telegram API siz) ===")
+
+    sample_texts = [
+        "Olmaliq shaharida yangi xona qurilish ishlanmalarini boshladi. Milliy bank rahbari buni e'lon qildi.",
+        "AGMK zavodi ushbu oy ichida 500 ton mahsulot ishlab chiqaradigan bo'ladi. Rahbar shunga xushbo'y.",
+        "Olmaliq vodiylarida ekologik paket loyihasi boshlandi. Barcha fuqaralar foydalana oladi."
+    ]
+
+    for i, sample_text in enumerate(sample_texts, 1):
+        log(f"\n📄 NAMUNA {i}: {sample_text[:50]}...")
+
+        result = processor.process_and_summarize(sample_text)
+        if not result:
+            log(f"❌ Namuna {i} tahlil qilib bo'lmadi")
+            continue
+
+        log(f"✅ Sarlavha (UZ): {result['sarlavha']}")
+        log(f"✅ Mazmun: {result['qisqa_mazmun']}")
+
+        time.sleep(1)
+
+    log("\n=== DEMO TEST YAKUNLANDI ===")
 
 def run_test_mode(client):
     log("=== TEST REJIMI ISHGA TUSHDI ===")
@@ -230,9 +263,26 @@ def main():
     parser.add_argument("--catchup", "-c", action="store_true", help="Eski postlarni tashlab yuborish")
     parser.add_argument("--loop", "-l", action="store_true", help="24/7 uzluksiz fonda ishlash")
     parser.add_argument("--duration-minutes", "-d", type=int, default=0, help="Necha daqiqa davomida faol monitoring qilib keyin chiqish")
+    parser.add_argument("--demo", action="store_true", help="Demo rejim (Telegram API siz test qilish)")
     args = parser.parse_args()
 
     log("Bot yuklanmoqda...")
+
+    # Demo mode (no Telegram API needed)
+    if args.demo or not telegram_reader_available:
+        if args.demo:
+            log("DEMO REJIMI FAOLLASHTIRILDI (Telegram API siz)")
+        else:
+            log("⚠️  Telegram API credentials yo'q. DEMO REJIMIDA ISHLAMOQDA...")
+
+        if args.test:
+            run_demo_test_mode()
+        else:
+            log("Demo rejimda default --test ishlamoqda")
+            run_demo_test_mode()
+        return
+
+    # Normal mode with Telegram API
     client = get_telegram_client()
 
     with client:
