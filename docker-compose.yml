@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  olmaliqpressbot:
+    build: .
+    container_name: olmaliqpressbot
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - TZ=Asia/Tashkent
+    networks:
+      - olmaliq-network
+
+networks:
+  olmaliq-network:
+    driver: bridge

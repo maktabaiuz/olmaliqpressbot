@@ -1,0 +1,17 @@
+[Unit]
+Description=OlmaliqpressBot - Telegram News Aggregator
+After=network.target
+
+[Service]
+Type=simple
+User=bot
+WorkingDirectory=/opt/olmaliqpressbot
+EnvironmentFile=/opt/olmaliqpressbot/.env
+ExecStart=/usr/bin/python3 /opt/olmaliqpressbot/main.py --loop
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
